@@ -7,6 +7,53 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.use(cors());
+app.use(
+  express.raw({
+    type: "*/*",
+    verify: function (req, _, buf, encoding) {
+      if (buf && buf.length) {
+        req.rawBody = buf.toString(encoding || "utf8");
+      }
+    },
+  })
+);
+
+app.post("/secret", async (req, res) => {
+  const { url, headers } = req.query;
+  const body = req.rawBody;
+
+  const decodedUrl = decodeURIComponent(url);
+
+  const host = new URL(decodedUrl).host;
+
+  const response = await axios.post(url, body, {
+    responseType: "stream",
+    headers: { ...req.headers, ...headers, host },
+    validateStatus: () => true,
+    maxRedirects: 0,
+  });
+
+  res.setHeader("Cache-Control", "public, max-age=3600");
+
+  for (let header in response.headers) {
+    if (header.toLowerCase() === "location") {
+      res.redirect(
+        302,
+        `/secret?url=${encodeURIComponent(
+          response.headers[header]
+        )}&${qs.stringify({ headers })}`
+      );
+
+      return;
+    }
+
+    res.setHeader(header, response.headers[header]);
+  }
+
+  res.status(response.status);
+
+  response.data.pipe(res);
+});
 
 app.get("/secret", async (req, res) => {
   const { url, headers } = req.query;
