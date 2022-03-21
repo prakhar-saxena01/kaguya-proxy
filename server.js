@@ -1,96 +1,71 @@
 const express = require("express");
 const cors = require("cors");
 const axios = require("axios");
-const qs = require("qs");
+require("dotenv");
 const app = express();
 
 const PORT = process.env.PORT || 3000;
+const MAIN_NODE_SERVER =
+  process.env.NODE_SERVER || "http://localhost:3001/kaguya";
 
 app.use(cors());
-app.use(
-  express.raw({
-    type: "*/*",
-    verify: function (req, _, buf, encoding) {
-      if (buf && buf.length) {
-        req.rawBody = buf.toString(encoding || "utf8");
+
+const getScrapers = () => {
+  return axios
+    .get(`${MAIN_NODE_SERVER}/proxy/sources`)
+    .then((res) => res.data.sources);
+};
+
+getScrapers().then((scrapers) => {
+  app.get("/proxy", async (req, res) => {
+    const { url, source_id } = req.query;
+
+    const scraper = scrapers.find((scraper) => scraper.id === source_id);
+
+    if (!scraper) {
+      return res.status(400).send("Invalid source id");
+    }
+
+    const decodedUrl = decodeURIComponent(url);
+
+    const host = new URL(decodedUrl).host;
+
+    const response = await axios.get(decodedUrl, {
+      responseType: "stream",
+      headers: { ...req.headers, ...scraper.headers, host },
+      validateStatus: () => true,
+      maxRedirects: 0,
+    });
+
+    res.setHeader("Cache-Control", "public, max-age=600");
+
+    const blacklistHeaders = [
+      "transfer-encoding",
+      "access-control-allow-origin",
+    ];
+
+    for (let header in response.headers) {
+      if (blacklistHeaders.includes(header.toLowerCase())) continue;
+
+      if (header.toLowerCase() === "location") {
+        const encodedUrl = encodeURIComponent(response.headers[header]);
+
+        res.redirect(302, `/proxy?url=${encodedUrl}&source_id=${source_id}`);
+
+        return;
       }
-    },
-  })
-);
 
-app.post("/secret", async (req, res) => {
-  const { url, headers } = req.query;
-  const body = req.rawBody;
-
-  const decodedUrl = decodeURIComponent(url);
-
-  const host = new URL(decodedUrl).host;
-
-  const response = await axios.post(url, body, {
-    responseType: "stream",
-    headers: { ...req.headers, ...headers, host },
-    validateStatus: () => true,
-    maxRedirects: 0,
-  });
-
-  res.setHeader("Cache-Control", "public, max-age=3600");
-
-  for (let header in response.headers) {
-    if (header.toLowerCase() === "location") {
-      res.redirect(
-        302,
-        `/secret?url=${encodeURIComponent(
-          response.headers[header]
-        )}&${qs.stringify({ headers })}`
-      );
-
-      return;
+      res.setHeader(header, response.headers[header]);
     }
 
-    res.setHeader(header, response.headers[header]);
-  }
+    res.setHeader("Access-Control-Allow-Origin", "*");
 
-  res.status(response.status);
+    res.status(response.status);
 
-  response.data.pipe(res);
-});
-
-app.get("/secret", async (req, res) => {
-  const { url, headers } = req.query;
-
-  const decodedUrl = decodeURIComponent(url);
-
-  const host = new URL(decodedUrl).host;
-
-  const response = await axios.get(decodedUrl, {
-    responseType: "stream",
-    headers: { ...req.headers, ...headers, host },
-    validateStatus: () => true,
-    maxRedirects: 0,
+    response.data.pipe(res);
   });
 
-  res.setHeader("Cache-Control", "public, max-age=3600");
-
-  for (let header in response.headers) {
-    if (header.toLowerCase() === "location") {
-      res.redirect(
-        302,
-        `/secret?url=${encodeURIComponent(
-          response.headers[header]
-        )}&${qs.stringify({ headers })}`
-      );
-
-      return;
-    }
-
-    res.setHeader(header, response.headers[header]);
-  }
-
-  res.status(response.status);
-
-  response.data.pipe(res);
-});
-
-app.listen(PORT, () => {
-  console.log(`Server is listening on port ${PORT}`);
+  app.listen(PORT, () => {
+    console.log(`Server is listening on port ${PORT}`);
+  });
 });
