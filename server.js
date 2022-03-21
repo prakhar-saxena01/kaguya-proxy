@@ -8,7 +8,15 @@ const PORT = process.env.PORT || 3000;
 const MAIN_NODE_SERVER =
   process.env.NODE_SERVER || "http://localhost:3001/kaguya";
 
-app.use(cors());
+app.use(
+  cors({
+    origin: [
+      "https://kaguya.live",
+      "https://www.kaguya.live",
+      "http://localhost:3000",
+    ],
+  })
+);
 
 const getScrapers = () => {
   return axios
@@ -57,8 +65,6 @@ getScrapers().then((scrapers) => {
 
       res.setHeader(header, response.headers[header]);
     }
-
-    res.setHeader("Access-Control-Allow-Origin", "*");
 
     res.status(response.status);
 
