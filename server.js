@@ -1,22 +1,11 @@
 const express = require("express");
-const cors = require("cors");
 const axios = require("axios");
-require("dotenv");
 const app = express();
+require("dotenv").config();
 
 const PORT = process.env.PORT || 3000;
 const MAIN_NODE_SERVER =
   process.env.NODE_SERVER || "http://localhost:3001/kaguya";
-
-app.use(
-  cors({
-    origin: [
-      "https://kaguya.live",
-      "https://www.kaguya.live",
-      "http://localhost:3000",
-    ],
-  })
-);
 
 const getScrapers = () => {
   return axios
@@ -45,12 +34,18 @@ getScrapers().then((scrapers) => {
       maxRedirects: 0,
     });
 
-    res.setHeader("Cache-Control", "public, max-age=600");
-
     const blacklistHeaders = [
       "transfer-encoding",
       "access-control-allow-origin",
     ];
+
+    const loweredCaseHeaders = Object.keys(response.headers).map((header) =>
+      header.toLowerCase()
+    );
+
+    if (!loweredCaseHeaders.includes("cache-control")) {
+      res.setHeader("Cache-Control", "public, max-age=600");
+    }
 
     for (let header in response.headers) {
       if (blacklistHeaders.includes(header.toLowerCase())) continue;
@@ -65,6 +60,8 @@ getScrapers().then((scrapers) => {
 
       res.setHeader(header, response.headers[header]);
     }
+
+    res.setHeader("Access-Control-Allow-Origin", "*");
 
     res.status(response.status);
 
