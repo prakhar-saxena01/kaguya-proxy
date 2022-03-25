@@ -47,6 +47,8 @@ getScrapers().then((scrapers) => {
       res.setHeader("Cache-Control", "public, max-age=600");
     }
 
+    res.setHeader("Access-Control-Allow-Origin", "*");
+
     for (let header in response.headers) {
       if (blacklistHeaders.includes(header.toLowerCase())) continue;
 
@@ -60,8 +62,6 @@ getScrapers().then((scrapers) => {
 
       res.setHeader(header, response.headers[header]);
     }
-
-    res.setHeader("Access-Control-Allow-Origin", "*");
 
     res.status(response.status);
 
