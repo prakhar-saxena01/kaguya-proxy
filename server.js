@@ -57,7 +57,7 @@ getScrapers().then((scrapers) => {
       if (header.toLowerCase() === "location") {
         const encodedUrl = encodeURIComponent(response.headers[header]);
 
-        res.redirect(302, `/proxy?url=${encodedUrl}&source_id=${source_id}`);
+        res.redirect(302, `/proxy/?url=${encodedUrl}&source_id=${source_id}`);
 
         return;
       }
