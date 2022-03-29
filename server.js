@@ -37,6 +37,7 @@ getScrapers().then((scrapers) => {
     const blacklistHeaders = [
       "transfer-encoding",
       "access-control-allow-origin",
+      "access-control-allow-methods",
     ];
 
     const loweredCaseHeaders = Object.keys(response.headers).map((header) =>
@@ -48,6 +49,7 @@ getScrapers().then((scrapers) => {
     }
 
     res.setHeader("Access-Control-Allow-Origin", "*");
+    res.setHeader("Access-Control-Allow-Methods", "*");
 
     for (let header in response.headers) {
       if (blacklistHeaders.includes(header.toLowerCase())) continue;
