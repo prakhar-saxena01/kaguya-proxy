@@ -27,9 +27,24 @@ getScrapers().then((scrapers) => {
 
     const host = new URL(decodedUrl).host;
 
+    const blacklistReqHeaders = [
+      "sec-ch-ua",
+      "sec-ch-ua-mobile",
+      "sec-ch-ua-platform",
+    ];
+
+    const headers = { ...req.headers, ...scraper.headers, host };
+
+    const filteredHeaders = Object.keys(headers).reduce((acc, key) => {
+      if (!blacklistReqHeaders.includes(key)) {
+        acc[key] = headers[key];
+      }
+      return acc;
+    }, {});
+
     const response = await axios.get(decodedUrl, {
       responseType: "stream",
-      headers: { ...req.headers, ...scraper.headers, host },
+      headers: filteredHeaders,
       validateStatus: () => true,
       maxRedirects: 0,
     });
@@ -38,9 +53,6 @@ getScrapers().then((scrapers) => {
       "transfer-encoding",
       "access-control-allow-origin",
       "access-control-allow-methods",
-      "sec-ch-ua",
-      "sec-ch-ua-mobile",
-      "sec-ch-ua-platform",
     ];
 
     const loweredCaseHeaders = Object.keys(response.headers).map((header) =>
