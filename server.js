@@ -3,7 +3,7 @@ const axios = require("axios");
 const app = express();
 require("dotenv").config();
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3002;
 const MAIN_NODE_SERVER =
   process.env.NODE_SERVER || "http://localhost:3001/kaguya";
 
@@ -38,6 +38,9 @@ getScrapers().then((scrapers) => {
       "transfer-encoding",
       "access-control-allow-origin",
       "access-control-allow-methods",
+      "sec-ch-ua",
+      "sec-ch-ua-mobile",
+      "sec-ch-ua-platform",
     ];
 
     const loweredCaseHeaders = Object.keys(response.headers).map((header) =>
